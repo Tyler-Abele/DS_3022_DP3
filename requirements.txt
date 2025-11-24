@@ -1,0 +1,6 @@
+pandas
+prefect
+numpy
+matplotlib
+plotly
+seaborn
