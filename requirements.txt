@@ -6,3 +6,4 @@ plotly
 seaborn
 duckdb
 pyopensky
+kafka-python
