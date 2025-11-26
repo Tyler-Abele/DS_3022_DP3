@@ -7,3 +7,5 @@ seaborn
 duckdb
 pyopensky
 kafka-python
+nbformat
+scikit-learn
