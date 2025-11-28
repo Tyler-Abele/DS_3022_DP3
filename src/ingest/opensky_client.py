@@ -2,20 +2,18 @@ import logging
 from typing import List, Dict, Optional
 
 from pyopensky.rest import REST
-from pyopensky.exceptions import OpenSkyAPiError
 
 logger = logging.getLogger(__name__)
 
 class OpenSkyClient:
     def __init__(self, username: Optional[str] = None, password: Optional[str] = None):
         
-        self.client = REST(username=username, password=password)
+        self.client = REST()
 
     def fetch_states(self):
         try:
-            df = self.rest.states()
-            return df
-        except OpenSkyAPiError as e:
+            return self.client.states()
+        except Exception as e:
             logger.error(f"Error fetching states: {e}")
             return None
         
