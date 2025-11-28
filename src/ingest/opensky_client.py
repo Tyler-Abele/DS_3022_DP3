@@ -49,6 +49,3 @@ class OpenSkyClient:
             "spi": row.get("spi"),
             "position_source": row.get("position_source"),
         }
-    
-    
-        
