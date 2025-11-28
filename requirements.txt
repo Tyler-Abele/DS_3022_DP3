@@ -9,3 +9,5 @@ pyopensky
 kafka-python
 nbformat
 scikit-learn
+boto3
+httpx

@@ -1,10 +1,10 @@
-from pyopensky.rest import REST
 import json
 import time
 import kafka
 from kafka import KafkaProducer
 import logging
 import sys
+from opensky_client import OpenSkyClient
 
 logging.basicConfig(
     level=logging.INFO,
@@ -12,21 +12,22 @@ logging.basicConfig(
     stream=sys.stdout)
 logger = logging.getLogger(__name__)
 
-rest = REST()
 
-def get_current_states():
-    states = rest.states()
-    return states
-
-def get_coordinates(states):
-    return states[["callsign","latitude", "longitude"]].to_dict("records")
+producer = KafkaProducer(
+    bootstap_servers="localhost:9092",
+    value_serializer=lambda v: json.dumps(v).encode('utf-8')
+)
 
 def main():
+    client = OpenSkyClient()
     while True:
-        states = get_current_states()
-        logger.info(f"Current states: {states}")
-        coords = get_coordinates(states)
-        logger.info(f"Coordinates: {coords}")
+        states = client.get_states_dict()
+        logger.info(f"Fetched {len(states)} states from OpenSky API")
+        snapshot_ts = int(time.time())
+        for state in states:
+            state['snapshot_ts'] = snapshot_ts
+            producer.send("aircraft_states_raw", value=state)
+            logger.info(f"Sent state: {state}")
         time.sleep(10)
 
 if __name__ == "__main__":
