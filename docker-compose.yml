@@ -1,0 +1,171 @@
+version: "3.9"
+
+networks:
+  dp3_opensky:
+    driver: bridge
+
+volumes:
+  dp3-opensky-0:
+  dp3-opensky-1:
+  dp3-opensky-2:
+
+services:
+  opensky-0:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.3
+    container_name: opensky-0
+    hostname: opensky-0
+    command:
+      - redpanda
+      - start
+      - --mode
+      - dev-container
+      - --smp
+      - "1"
+      - --default-log-level=info
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr
+      - internal://opensky-0:9092,external://127.0.0.1:19092
+      - --pandaproxy-addr
+      - internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr
+      - internal://opensky-0:8082,external://localhost:18082
+      - --schema-registry-addr
+      - internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr
+      - opensky-0:33145
+      - --advertise-rpc-addr
+      - opensky-0:33145
+    ports:
+      - "18081:18081"
+      - "18082:18082"
+      - "19092:19092"
+      - "19644:9644"
+    volumes:
+      - dp3-opensky-0:/var/lib/redpanda/data
+    networks:
+      - dp3_opensky
+
+  opensky-1:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.3
+    container_name: opensky-1
+    hostname: opensky-1
+    command:
+      - redpanda
+      - start
+      - --mode
+      - dev-container
+      - --smp
+      - "1"
+      - --default-log-level=info
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:29092
+      - --advertise-kafka-addr
+      - internal://opensky-1:9092,external://127.0.0.1:29092
+      - --pandaproxy-addr
+      - internal://0.0.0.0:8082,external://0.0.0.0:28082
+      - --advertise-pandaproxy-addr
+      - internal://opensky-1:8082,external://localhost:28082
+      - --schema-registry-addr
+      - internal://0.0.0.0:8081,external://0.0.0.0:28081
+      - --rpc-addr
+      - opensky-1:33145
+      - --advertise-rpc-addr
+      - opensky-1:33145
+      - --seeds
+      - opensky-0:33145
+    ports:
+      - "28081:28081"
+      - "28082:28082"
+      - "29092:29092"
+      - "29644:9644"
+    volumes:
+      - dp3-opensky-1:/var/lib/redpanda/data
+    networks:
+      - dp3_opensky
+    depends_on:
+      - opensky-0
+
+  opensky-2:
+    image: docker.redpanda.com/redpandadata/redpanda:v25.1.3
+    container_name: opensky-2
+    hostname: opensky-2
+    command:
+      - redpanda
+      - start
+      - --mode
+      - dev-container
+      - --smp
+      - "1"
+      - --default-log-level=info
+      - --kafka-addr
+      - internal://0.0.0.0:9092,external://0.0.0.0:39092
+      - --advertise-kafka-addr
+      - internal://opensky-2:9092,external://127.0.0.1:39092
+      - --pandaproxy-addr
+      - internal://0.0.0.0:8082,external://0.0.0.0:38082
+      - --advertise-pandaproxy-addr
+      - internal://opensky-2:8082,external://localhost:38082
+      - --schema-registry-addr
+      - internal://0.0.0.0:8081,external://0.0.0.0:38081
+      - --rpc-addr
+      - opensky-2:33145
+      - --advertise-rpc-addr
+      - opensky-2:33145
+      - --seeds
+      - opensky-0:33145
+    ports:
+      - "38081:38081"
+      - "38082:38082"
+      - "39092:39092"
+      - "39644:9644"
+    volumes:
+      - dp3-opensky-2:/var/lib/redpanda/data
+    networks:
+      - dp3_opensky
+    depends_on:
+      - opensky-0
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v3.1.0
+    container_name: opensky-console
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers:
+            - opensky-0:9092
+            - opensky-1:9092
+            - opensky-2:9092
+        schemaRegistry:
+          enabled: true
+          urls:
+            - http://opensky-0:8081
+            - http://opensky-1:8081
+            - http://opensky-2:8081
+        redpanda:
+          adminApi:
+            enabled: true
+            urls:
+              - http://opensky-0:9644
+              - http://opensky-1:9644
+              - http://opensky-2:9644
+    ports:
+      - "8080:8080"
+    depends_on:
+      - opensky-0
+      - opensky-1
+      - opensky-2
+    networks:
+      - dp3_opensky
+
+  redis:
+    image: redis:7
+    container_name: dp3-opensky-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - dp3_opensky
+
