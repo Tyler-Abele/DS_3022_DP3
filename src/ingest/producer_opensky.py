@@ -13,8 +13,14 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+# Use the externally exposed Redpanda listener ports from docker-compose.
+# Each broker exposes a different port on localhost.
 producer = KafkaProducer(
-    bootstap_servers="localhost:9092",
+    bootstrap_servers=[
+        "localhost:19092",
+        "localhost:29092",
+        "localhost:39092",
+    ],
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
