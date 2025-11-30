@@ -10,7 +10,12 @@ logger = logging.getLogger(__name__)
 def _sanitize(value):
     """Convert pandas/NumPy missing values to None so JSON serialization works."""
     try:
-        return None if pd.isna(value) else value
+        if pd.isna(value):
+            return None
+        # Convert pandas Timestamp to ISO format string
+        if isinstance(value, pd.Timestamp):
+            return value.isoformat()
+        return value
     except TypeError:
         # pd.isna raises on non-scalar containers; keep the original value.
         return value
@@ -44,17 +49,17 @@ class OpenSkyClient:
             "icao24": _sanitize(row.get("icao24")),
             "callsign": _sanitize(row.get("callsign")),
             "origin_country": _sanitize(row.get("origin_country")),
-            "time_position": _sanitize(row.get("time_position")),
-            "last_contact": _sanitize(row.get("last_contact")),
+            "time_position": _sanitize(row.get("timestamp")),
+            "last_contact": _sanitize(row.get("last_position")),
             "longitude": _sanitize(row.get("longitude")),
             "latitude": _sanitize(row.get("latitude")),
-            "baro_altitude": _sanitize(row.get("baro_altitude")),
-            "on_ground": _sanitize(row.get("on_ground")),
-            "velocity": _sanitize(row.get("velocity")),
-            "true_track": _sanitize(row.get("true_track")),
+            "baro_altitude": _sanitize(row.get("altitude")),
+            "on_ground": _sanitize(row.get("onground")),
+            "velocity": _sanitize(row.get("groundspeed")),
+            "true_track": _sanitize(row.get("track")),  
             "vertical_rate": _sanitize(row.get("vertical_rate")),
             "sensors": _sanitize(row.get("sensors")),
-            "geo_altitude": _sanitize(row.get("geo_altitude")),
+            "geo_altitude": _sanitize(row.get("geoaltitude")),
             "squawk": _sanitize(row.get("squawk")),
             "spi": _sanitize(row.get("spi")),
             "position_source": _sanitize(row.get("position_source")),
