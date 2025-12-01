@@ -73,17 +73,10 @@ sdf = sdf.filter(is_recent_enough)
 # Using a constant key ensures all messages are processed in the same window
 
 def initializer(event):
-    return {
-        'count': 0,
-        'unique_aircraft': {}  # Use dict instead of set for JSON serialization
-    }
+    return []
 
 def reducer(aggregated, event):
-    aggregated['count'] += 1
-    # Track unique aircraft by icao24 (using dict keys for uniqueness)
-    icao24 = event.get('icao24')
-    if icao24:
-        aggregated['unique_aircraft'][icao24] = True
+    aggregated.append(event)
     return aggregated
 
 # Group by constant key to create a single global window
@@ -105,29 +98,27 @@ def make_s3_key(window_end_ms: int) -> str:
     end_dt = datetime.fromtimestamp(window_end_ms / 1000)
     date_path = end_dt.strftime("%Y/%m/%d")
     timestamp = end_dt.strftime("%Y%m%dT%H%M%S")
-    return f"{S3_PREFIX}/date={date_path}/window_agg_{timestamp}.parquet"
+    return f"{S3_PREFIX}/date={date_path}/window_raw_{timestamp}.parquet"
 
 def write_window_to_s3(result):
     """Write window result to S3 as parquet."""
     try:
-        value = result['value']
+        events = result['value']
         start_ms = result['start']
         end_ms = result['end']
         
         # Prepare data for DataFrame
-        data = {
-            'window_start': [datetime.fromtimestamp(start_ms / 1000)],
-            'window_end': [datetime.fromtimestamp(end_ms / 1000)],
-            'count': [value['count']],
-            'unique_aircraft_count': [len(value['unique_aircraft'])]
-        }
+        # Convert list of dicts (events) to DataFrame
+        df = pd.DataFrame(events)
         
-        df = pd.DataFrame(data)
+        # Add window metadata
+        df['window_start'] = datetime.fromtimestamp(start_ms / 1000)
+        df['window_end'] = datetime.fromtimestamp(end_ms / 1000)
         
         s3_key = make_s3_key(end_ms)
         tmp_path = f"/tmp/{os.path.basename(s3_key)}"
         
-        logger.info(f"Writing window result to {tmp_path}...")
+        logger.info(f"Writing {len(df)} events to {tmp_path}...")
         df.to_parquet(tmp_path, index=False)
         
         logger.info(f"Uploading {tmp_path} to s3://{S3_BUCKET}/{s3_key}...")
@@ -147,16 +138,17 @@ def print_window_result(result):
     start_time = datetime.fromtimestamp(result['start'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
     end_time = datetime.fromtimestamp(result['end'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
     
-    value = result['value']
-    unique_count = len(value['unique_aircraft'])  # Count dict keys
+    events = result['value']
+    count = len(events)
+    unique_aircraft = len(set(e.get('icao24') for e in events if e.get('icao24')))
     
     print(f"{'='*60}")
     print(f"Window:           {start_time} to {end_time}")
-    print(f"Total Observations: {value['count']}")
-    print(f"Unique Aircraft:  {unique_count}")
+    print(f"Total Observations: {count}")
+    print(f"Unique Aircraft:  {unique_aircraft}")
     print(f"{'='*60}\n")
     
-    logger.info(f"Window closed: {value['count']} observations, {unique_count} unique aircraft")
+    logger.info(f"Window closed: {count} observations, {unique_aircraft} unique aircraft")
     
     # Write to S3
     write_window_to_s3(result)
