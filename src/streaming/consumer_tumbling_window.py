@@ -2,6 +2,7 @@ from quixstreams import Application
 from datetime import timedelta, datetime
 import logging
 import sys
+import time
 
 logging.basicConfig(
     level=logging.INFO,
@@ -10,10 +11,13 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+# Configuration: Maximum age of data to process (in minutes)
+MAX_DATA_AGE_MINUTES = 9
+
 # Create the Quix Application (connects to Kafka/Redpanda)
 app = Application(
     broker_address='127.0.0.1:19092',
-    consumer_group='aircraft-tumbling-window-v1',
+    consumer_group='aircraft-tumbling-window-v5',
     auto_offset_reset='earliest',
 )
 
@@ -22,6 +26,29 @@ aircraft_topic = app.topic('aircraft_states_raw', value_deserializer='json')
 
 # Create a streaming dataframe
 sdf = app.dataframe(aircraft_topic)
+
+# Filter out events older than MAX_DATA_AGE_MINUTES
+# Uses snapshot_ts if available, otherwise current time
+def is_recent_enough(event):
+    """Check if event is recent enough to process."""
+    current_time = int(time.time())
+    
+    # Use snapshot_ts if available (set by producer), otherwise use current time
+    event_time = event.get('snapshot_ts', current_time)
+    
+    # Calculate age in seconds
+    age_seconds = current_time - event_time
+    age_minutes = age_seconds / 60
+    
+    # Only process if data is less than MAX_DATA_AGE_MINUTES old
+    is_recent = age_minutes < MAX_DATA_AGE_MINUTES
+    
+    if not is_recent:
+        logger.warning(f"Filtering out old event: {age_minutes:.2f} minutes old")
+    
+    return is_recent
+
+sdf = sdf.filter(is_recent_enough)
 
 # OPTION 1: Global window - group by constant key to create one window for all events
 # This creates one window that aggregates all aircraft states regardless of country
@@ -42,9 +69,14 @@ def reducer(aggregated, event):
     return aggregated
 
 # Group by constant key to create a single global window
+# grace_ms controls how long to keep window state after it closes (for late-arriving data)
+# Set to MAX_DATA_AGE_MINUTES to ensure old windows are cleaned up
 sdf = (
     sdf.group_by(lambda event: "global", name="global_window")
-    .tumbling_window(duration_ms=timedelta(minutes=3))
+    .tumbling_window(
+        duration_ms=timedelta(minutes=3),
+        grace_ms=timedelta(minutes=MAX_DATA_AGE_MINUTES)  # Clean up windows older than this
+    )
     .reduce(initializer=initializer, reducer=reducer)
     .final()
 )
@@ -79,6 +111,7 @@ sdf.update(print_window_result)
 
 if __name__ == '__main__':
     logger.info("Starting aircraft state counter with 3-minute tumbling windows...")
+    logger.info(f"Filtering out data older than {MAX_DATA_AGE_MINUTES} minutes")
     logger.info("Press Ctrl+C to stop\n")
     app.run()
 
