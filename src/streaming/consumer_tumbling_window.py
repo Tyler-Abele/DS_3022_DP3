@@ -27,6 +27,9 @@ app = Application(
     broker_address='127.0.0.1:19092',
     consumer_group='aircraft-tumbling-window-v5',
     auto_offset_reset='earliest',
+    producer_extra_config={
+        'message.max.bytes': 20971520,  # 20 MB
+    }
 )
 
 # Define the input topic

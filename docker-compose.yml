@@ -36,6 +36,10 @@ services:
       - opensky-0:33145
       - --advertise-rpc-addr
       - opensky-0:33145
+      - --set
+      - redpanda.kafka_batch_max_bytes=20971520
+      - --set
+      - redpanda.rpc_server_max_request_bytes=20971520
     ports:
       - "18081:18081"
       - "18082:18082"
@@ -74,6 +78,10 @@ services:
       - opensky-1:33145
       - --seeds
       - opensky-0:33145
+      - --set
+      - redpanda.kafka_batch_max_bytes=20971520
+      - --set
+      - redpanda.rpc_server_max_request_bytes=20971520
     ports:
       - "28081:28081"
       - "28082:28082"
@@ -114,6 +122,10 @@ services:
       - opensky-2:33145
       - --seeds
       - opensky-0:33145
+      - --set
+      - redpanda.kafka_batch_max_bytes=20971520
+      - --set
+      - redpanda.rpc_server_max_request_bytes=20971520
     ports:
       - "38081:38081"
       - "38082:38082"
