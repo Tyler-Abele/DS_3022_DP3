@@ -42,14 +42,33 @@ def main():
             )
 
             # load in the files from s3
-            parquet_glob = f"s3://{S3_BUCKET}/{S3_PREFIX_DATA}/date=*/*/*/aircraft_states_*.parquet"
+            # Find the most recent parquet file using boto3
+            s3 = boto3.client('s3', region_name='us-east-1')
+            
+            # List objects to find the latest one
+            # Note: This assumes a reasonable number of files or that the latest is returned in the first batch
+            # For production with many files, we might need to be more specific with the prefix (e.g. today's date)
+            response = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=S3_PREFIX_DATA)
+            
+            if 'Contents' not in response:
+                logger.warning("No files found in S3 bucket")
+                return
+
+            # Sort by Key (which contains timestamp) to get the latest
+            # Format: processed/date=YYYY/MM/DD/window_raw_YYYYMMDDTHHMMSS.parquet
+            latest_file = sorted(response['Contents'], key=lambda x: x['Key'], reverse=True)[0]
+            latest_key = latest_file['Key']
+            
+            logger.info(f"Loading most recent file: {latest_key}")
+            
+            parquet_file = f"s3://{S3_BUCKET}/{latest_key}"
 
             con.execute(
                 """
                 CREATE OR REPLACE TABLE aircraft_states AS
-                SELECT * FROM read_parquet(?, union_by_name=true);
+                SELECT * FROM read_parquet(?);
                 """,
-                [parquet_glob],
+                [parquet_file],
             )
             
             logger.info("created aircraft_states table")
@@ -74,7 +93,7 @@ def main():
             con.execute(
                 """
                 CREATE OR REPLACE TABLE model_database AS
-                SELECT * FROM read_csv_auto(?, delim=',', quote='''', header=True);
+                SELECT * FROM read_csv_auto(?, header=True);
                 """,
                 [data_file2],
             )
