@@ -76,6 +76,11 @@ def initializer(event):
     return []
 
 def reducer(aggregated, event):
+    # Handle legacy state (dict) from previous version
+    if isinstance(aggregated, dict):
+        logger.warning("Found legacy state (dict), resetting to list for raw events.")
+        return [event]
+        
     aggregated.append(event)
     return aggregated
 
