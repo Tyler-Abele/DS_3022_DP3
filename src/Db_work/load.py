@@ -74,7 +74,7 @@ def main():
             con.execute(
                 """
                 CREATE OR REPLACE TABLE model_database AS
-                SELECT * FROM read_csv_auto(?, header=True);
+                SELECT * FROM read_csv_auto(?, delim=',', quote='''', header=True);
                 """,
                 [data_file2],
             )

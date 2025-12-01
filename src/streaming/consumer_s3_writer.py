@@ -25,7 +25,6 @@ logger = logging.getLogger(__name__)
 
 s3 = boto3.client("s3", region_name="us-east-1")
 
-
 def make_s3_key(now: datetime) -> str:
     date_path = now.strftime("%Y/%m/%d")
     timestamp = now.strftime("%Y%m%dT%H%M%S")
