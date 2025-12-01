@@ -1,6 +1,10 @@
-.log
-.DStore
-.csv
-.vscode
-.png
+*.log
+*.DStore
+
+*.vscode
+*.png
 __pycache__
+.DS_Store
+*.parquet
+*.csv
+*.duckdb
