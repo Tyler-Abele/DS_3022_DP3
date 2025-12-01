@@ -1,5 +1,6 @@
 import logging
 from typing import Dict, List, Optional
+import os
 
 import pandas as pd
 from pyopensky.rest import REST
@@ -22,7 +23,7 @@ def _sanitize(value):
 
 
 class OpenSkyClient:
-    def __init__(self, username: Optional[str] = None, password: Optional[str] = None):
+    def __init__(self):
 
         self.client = REST()
 
