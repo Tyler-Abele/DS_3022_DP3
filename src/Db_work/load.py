@@ -34,21 +34,6 @@ def main():
             con.execute("INSTALL httpfs")
             con.execute("LOAD httpfs")
 
-            # # Grab AWS creds from boto3
-            # session = boto3.Session()
-            # creds = session.get_credentials()
-            # if creds is None:
-            #     raise RuntimeError("No AWS credentials found for boto3/duckdb")
-
-            # frozen = creds.get_frozen_credentials()
-
-            # Configure DuckDB S3 access
-            # con.execute("SET s3_region='us-east-1';")
-            # con.execute("SET s3_access_key_id=?", [frozen.access_key])
-            # con.execute("SET s3_secret_access_key=?", [frozen.secret_key])
-            # if frozen.token:
-            #     con.execute("SET s3_session_token=?", [frozen.token])
-
             # set s3 region
             con.execute(
                 """
@@ -62,7 +47,7 @@ def main():
             con.execute(
                 """
                 CREATE OR REPLACE TABLE aircraft_states AS
-                SELECT * FROM read_parquet(?);
+                SELECT * FROM read_parquet(?, union_by_name=true);
                 """,
                 [parquet_glob],
             )
@@ -75,13 +60,13 @@ def main():
             
             con.execute(
                 """
-                CREATE OR REPLACE TABLE aircraft_airframes AS
+                CREATE OR REPLACE TABLE airframes AS
                 SELECT * FROM read_csv_auto(?, header=True);
                 """,
                 [data_file1],
             )
             
-            logger.info("created airframe_database table")
+            logger.info("created airframes table")
 
             # load in the reference data files
             data_file2 = f"s3://{S3_BUCKET}/data/doc8643AircraftTypes.csv"
