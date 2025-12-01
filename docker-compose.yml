@@ -9,6 +9,7 @@ volumes:
   dp3-opensky-1:
   dp3-opensky-2:
 
+
 services:
   opensky-0:
     image: docker.redpanda.com/redpandadata/redpanda:v25.1.3
@@ -37,9 +38,7 @@ services:
       - --advertise-rpc-addr
       - opensky-0:33145
       - --set
-      - redpanda.kafka_batch_max_bytes=20971520
-      - --set
-      - redpanda.rpc_server_max_request_bytes=20971520
+      - redpanda.kafka_batch_max_bytes=104857600
     ports:
       - "18081:18081"
       - "18082:18082"
@@ -79,9 +78,7 @@ services:
       - --seeds
       - opensky-0:33145
       - --set
-      - redpanda.kafka_batch_max_bytes=20971520
-      - --set
-      - redpanda.rpc_server_max_request_bytes=20971520
+      - redpanda.kafka_batch_max_bytes=104857600
     ports:
       - "28081:28081"
       - "28082:28082"
@@ -123,9 +120,7 @@ services:
       - --seeds
       - opensky-0:33145
       - --set
-      - redpanda.kafka_batch_max_bytes=20971520
-      - --set
-      - redpanda.rpc_server_max_request_bytes=20971520
+      - redpanda.kafka_batch_max_bytes=104857600
     ports:
       - "38081:38081"
       - "38082:38082"

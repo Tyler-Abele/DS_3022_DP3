@@ -25,10 +25,10 @@ s3 = boto3.client("s3", region_name="us-east-1")
 # Create the Quix Application (connects to Kafka/Redpanda)
 app = Application(
     broker_address='127.0.0.1:19092',
-    consumer_group='aircraft-tumbling-window-v5',
+    consumer_group='aircraft-tumbling-window-v6',
     auto_offset_reset='earliest',
     producer_extra_config={
-        'message.max.bytes': 20971520,  # 20 MB
+        'message.max.bytes': 104857600,  # 100 MB
     }
 )
 
@@ -76,15 +76,23 @@ sdf = sdf.filter(is_recent_enough)
 # Using a constant key ensures all messages are processed in the same window
 
 def initializer(event):
-    return []
+    return [event]
 
 def reducer(aggregated, event):
     # Handle legacy state (dict) from previous version
     if isinstance(aggregated, dict):
         logger.warning("Found legacy state (dict), resetting to list for raw events.")
         return [event]
+    
+    # Handle corrupted state (e.g. string) or other non-list types
+    if not isinstance(aggregated, list):
+        logger.warning(f"Found invalid state type {type(aggregated)}, resetting to list.")
+        return [event]
         
     aggregated.append(event)
+    if len(aggregated) % 1000 == 0:
+        ts = event.get('snapshot_ts', 'unknown')
+        logger.info(f"Window currently has {len(aggregated)} events. Last event ts: {ts}")
     return aggregated
 
 # Group by constant key to create a single global window
@@ -94,7 +102,7 @@ sdf = (
     sdf.group_by(lambda event: "global", name="global_window")
     .tumbling_window(
         duration_ms=timedelta(minutes=3),
-        grace_ms=timedelta(minutes=MAX_DATA_AGE_MINUTES)  # Clean up windows older than this
+        grace_ms=timedelta(seconds=10)  # Reduced grace period for faster results
     )
     .reduce(initializer=initializer, reducer=reducer)
     .final()
@@ -147,6 +155,10 @@ def print_window_result(result):
     end_time = datetime.fromtimestamp(result['end'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
     
     events = result['value']
+    if not isinstance(events, list):
+        logger.error(f"Expected list of events, got {type(events)}. Value: {events}")
+        return
+
     count = len(events)
     unique_aircraft = len(set(e.get('icao24') for e in events if e.get('icao24')))
     
