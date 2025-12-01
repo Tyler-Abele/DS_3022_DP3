@@ -11,4 +11,4 @@ nbformat
 scikit-learn
 boto3
 httpx
-boto3
+quixstreams
