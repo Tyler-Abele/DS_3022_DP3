@@ -3,6 +3,9 @@ from datetime import timedelta, datetime
 import logging
 import sys
 import time
+import boto3
+import pandas as pd
+import os
 
 logging.basicConfig(
     level=logging.INFO,
@@ -13,6 +16,11 @@ logger = logging.getLogger(__name__)
 
 # Configuration: Maximum age of data to process (in minutes)
 MAX_DATA_AGE_MINUTES = 9
+
+S3_BUCKET = "xxe9ff-dp3"
+S3_PREFIX = "processed"
+
+s3 = boto3.client("s3", region_name="us-east-1")
 
 # Create the Quix Application (connects to Kafka/Redpanda)
 app = Application(
@@ -43,14 +51,24 @@ def is_recent_enough(event):
     # Only process if data is less than MAX_DATA_AGE_MINUTES old
     is_recent = age_minutes < MAX_DATA_AGE_MINUTES
     
-    if not is_recent:
-        logger.warning(f"Filtering out old event: {age_minutes:.2f} minutes old")
+    # if not is_recent:
+    #     logger.warning(f"Filtering out old event: {age_minutes:.2f} minutes old")
     
     return is_recent
 
 sdf = sdf.filter(is_recent_enough)
 
-# OPTION 1: Global window - group by constant key to create one window for all events
+# Heartbeat logging
+# processed_count = 0
+# def log_heartbeat(row):
+#     global processed_count
+#     processed_count += 1
+#     if processed_count % 10 == 0:
+#         logger.info(f"Heartbeat: Processed {processed_count} valid messages waiting for window...")
+
+# sdf = sdf.update(log_heartbeat)
+
+# Global window - group by constant key to create one window for all events
 # This creates one window that aggregates all aircraft states regardless of country
 # Using a constant key ensures all messages are processed in the same window
 
@@ -81,14 +99,47 @@ sdf = (
     .final()
 )
 
-# OPTION 2: With grouping - separate windows per country (commented out)
-# Uncomment this and comment out the above if you want separate windows per country
-# sdf = (
-#     sdf.group_by(lambda event: event.get('origin_country', 'unknown'), name='origin_country')
-#     .tumbling_window(duration_ms=timedelta(minutes=3))
-#     .reduce(initializer=initializer, reducer=reducer)
-#     .final()
-# )
+
+def make_s3_key(window_end_ms: int) -> str:
+    """Generate S3 key based on window end time."""
+    end_dt = datetime.fromtimestamp(window_end_ms / 1000)
+    date_path = end_dt.strftime("%Y/%m/%d")
+    timestamp = end_dt.strftime("%Y%m%dT%H%M%S")
+    return f"{S3_PREFIX}/date={date_path}/window_agg_{timestamp}.parquet"
+
+def write_window_to_s3(result):
+    """Write window result to S3 as parquet."""
+    try:
+        value = result['value']
+        start_ms = result['start']
+        end_ms = result['end']
+        
+        # Prepare data for DataFrame
+        data = {
+            'window_start': [datetime.fromtimestamp(start_ms / 1000)],
+            'window_end': [datetime.fromtimestamp(end_ms / 1000)],
+            'count': [value['count']],
+            'unique_aircraft_count': [len(value['unique_aircraft'])]
+        }
+        
+        df = pd.DataFrame(data)
+        
+        s3_key = make_s3_key(end_ms)
+        tmp_path = f"/tmp/{os.path.basename(s3_key)}"
+        
+        logger.info(f"Writing window result to {tmp_path}...")
+        df.to_parquet(tmp_path, index=False)
+        
+        logger.info(f"Uploading {tmp_path} to s3://{S3_BUCKET}/{s3_key}...")
+        s3.upload_file(tmp_path, S3_BUCKET, s3_key)
+        logger.info(f"Uploaded window result to s3://{S3_BUCKET}/{s3_key}")
+        
+        # Clean up
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+            
+    except Exception as e:
+        logger.error(f"Failed to write window to S3: {e}")
 
 # Print results when windows close
 def print_window_result(result):
@@ -106,6 +157,9 @@ def print_window_result(result):
     print(f"{'='*60}\n")
     
     logger.info(f"Window closed: {value['count']} observations, {unique_count} unique aircraft")
+    
+    # Write to S3
+    write_window_to_s3(result)
 
 sdf.update(print_window_result)
 
@@ -114,4 +168,3 @@ if __name__ == '__main__':
     logger.info(f"Filtering out data older than {MAX_DATA_AGE_MINUTES} minutes")
     logger.info("Press Ctrl+C to stop\n")
     app.run()
-
