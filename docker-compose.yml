@@ -168,4 +168,3 @@ services:
       - "6379:6379"
     networks:
       - dp3_opensky
-
