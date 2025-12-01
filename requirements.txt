@@ -12,3 +12,4 @@ scikit-learn
 boto3
 httpx
 quixstreams
+kaleido
