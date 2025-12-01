@@ -20,12 +20,7 @@ logger = logging.getLogger(__name__)
 
 def create_enriched_aircraft_table(con: duckdb.DuckDBPyConnection):
     """
-    Create an enriched aircraft states table by joining:
-    - aircraft_states (operational data)
-    - airframes (aircraft metadata)
-    - model_database (aircraft type details)
-    
-    This creates a single table with all relevant information for anomaly detection.
+    create table with all relevant information by joining the tables 
     """
     logger.info("Creating enriched aircraft states table...")
     
@@ -34,7 +29,6 @@ def create_enriched_aircraft_table(con: duckdb.DuckDBPyConnection):
         SELECT 
             -- Operational data from aircraft_states
             s.icao24,
-            s.callsign,
             s.origin_country,
             s.time_position,
             s.last_contact,
@@ -49,37 +43,20 @@ def create_enriched_aircraft_table(con: duckdb.DuckDBPyConnection):
             s.sensors,
             s.squawk,
             s.spi,
-            s.position_source,
             s.snapshot_ts,
             s.date,
             
             -- Aircraft metadata from airframes
             af.registration,
-            af.manufacturericao,
-            af.manufacturername,
             af.model,
-            af.typecode,
             af.icaoaircrafttype,
             af.operator,
-            af.operatorcallsign,
             af.operatoricao,
-            af.operatoriata,
-            af.owner,
-            af.status,
-            af.built,
-            af.engines,
-            af.modes,
-            af.adsb,
-            af.acars,
-            af.categoryDescription,
             
             -- Aircraft type details from model_database
             md.ModelFullName,
             md.AircraftDescription,
             md.Description,
-            md.EngineCount,
-            md.EngineType,
-            md.ManufacturerCode,
             md.WTC,
             
             -- Derived fields for anomaly detection
