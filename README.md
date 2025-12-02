@@ -48,4 +48,4 @@ Overall, our analysis demonstrates that even within a globally consistent aviati
 
 ![Altitude vs. Velocity Scatter Plot](images/altitude_velocity_scatter.png)
 
-![Anomoly detection Map](images/anomaly_detection_map.png)
+![Anomoly detection Map](images/anomaly_detection.png)
