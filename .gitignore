@@ -10,3 +10,4 @@ __pycache__
 state
 !images/*.png
 */notebooks
+scripts/logs
