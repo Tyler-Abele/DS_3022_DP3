@@ -94,10 +94,9 @@ def query_table(db_path: str, table_name: str, limit: int = 10) -> Optional[List
 
 
 if __name__ == "__main__":
-    # Example usage
     from pathlib import Path
     PROJECT_ROOT = Path(__file__).parent.parent.parent
     db_path = PROJECT_ROOT / "air_ops.duckdb"
     
     inspect_database(str(db_path))
-
+    

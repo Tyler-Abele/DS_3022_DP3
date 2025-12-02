@@ -24,6 +24,8 @@ producer = KafkaProducer(
     value_serializer=lambda v: json.dumps(v).encode('utf-8')
 )
 
+# Fetches aircraft states from OpenSky API and sends them to Kafka
+
 def main():
     client = OpenSkyClient()
     while True:

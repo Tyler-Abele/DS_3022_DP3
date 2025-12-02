@@ -24,10 +24,11 @@ def _sanitize(value):
 
 class OpenSkyClient:
     def __init__(self):
-
+        # Initialize OpenSky client
         self.client = REST()
 
     def fetch_states(self):
+        # Fetch aircraft states from OpenSky API
         try:
             return self.client.states()
         except Exception as e:
@@ -35,6 +36,7 @@ class OpenSkyClient:
             return None
 
     def get_states_dict(self) -> List[Dict]:
+        # Get aircraft states as a list of dictionaries
         df = self.fetch_states()
         if df is None:
             return []
@@ -46,6 +48,7 @@ class OpenSkyClient:
         return records
 
     def _row_to_dict(self, row) -> Dict:
+        # Convert row to dictionary
         return {
             "icao24": _sanitize(row.get("icao24")),
             "callsign": _sanitize(row.get("callsign")),
