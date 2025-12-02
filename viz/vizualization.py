@@ -92,8 +92,10 @@ def generate_scatter_plot(df):
     logger.info(f"Plot saved to {output_path}")
     plt.close()
 
-if __name__ == "__main__":
+def main():
     df = load_data()
     if not df.empty:
         generate_scatter_plot(df)
-s
+
+if __name__ == "__main__":
+    main()
