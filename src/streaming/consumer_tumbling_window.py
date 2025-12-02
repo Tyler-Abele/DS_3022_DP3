@@ -61,20 +61,6 @@ def is_recent_enough(event):
 
 sdf = sdf.filter(is_recent_enough)
 
-# Heartbeat logging
-# processed_count = 0
-# def log_heartbeat(row):
-#     global processed_count
-#     processed_count += 1
-#     if processed_count % 10 == 0:
-#         logger.info(f"Heartbeat: Processed {processed_count} valid messages waiting for window...")
-
-# sdf = sdf.update(log_heartbeat)
-
-# Global window - group by constant key to create one window for all events
-# This creates one window that aggregates all aircraft states regardless of country
-# Using a constant key ensures all messages are processed in the same window
-
 def initializer(event):
     return [event]
 
@@ -150,7 +136,7 @@ def write_window_to_s3(result):
 
 # Print results when windows close
 def print_window_result(result):
-    """Print the aggregated results when a window closes."""
+    
     start_time = datetime.fromtimestamp(result['start'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
     end_time = datetime.fromtimestamp(result['end'] / 1000).strftime('%Y-%m-%d %H:%M:%S')
     

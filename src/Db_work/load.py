@@ -40,44 +40,13 @@ def main():
                 """
             )
 
-            # load in the files from s3
-            # Find the most recent parquet file using boto3
-            # s3 = boto3.client('s3', region_name='us-east-1')
-            
-            # List objects to find the latest one
-            # Note: This assumes a reasonable number of files or that the latest is returned in the first batch
-            # For production with many files, we might need to be more specific with the prefix (e.g. today's date)
-            # response = s3.list_objects_v2(Bucket=S3_BUCKET, Prefix=S3_PREFIX_DATA)
-            
-            # if 'Contents' not in response:
-            #     logger.warning("No files found in S3 bucket")
-            #     return
-
-            # Sort by Key (which contains timestamp) to get the latest
-            # Format: processed/date=YYYY/MM/DD/window_raw_YYYYMMDDTHHMMSS.parquet
-            # latest_file = sorted(response['Contents'], key=lambda x: x['Key'], reverse=True)[0]
-            # latest_key = latest_file['Key']
-            
-            # logger.info(f"Loading most recent file: {latest_key}")
-            
-            # parquet_file = f"s3://{S3_BUCKET}/{latest_key}"
-
-            # con.execute(
-            #     """
-            #     CREATE OR REPLACE TABLE aircraft_states AS
-            #     SELECT * FROM read_parquet(?);
-            #     """,
-            #     [parquet_file],
-            # )
-            
-            # logger.info("created aircraft_states table")
-
 
             # 1) Find the most recent parquet file on S3 using DuckDB metadata
             pattern = (
                 f"s3://{S3_BUCKET}/{S3_PREFIX_DATA}/date=*/*/*/window_raw_*.parquet"
             )
 
+            # 2) Get the metadata for the most recent parquet file
             result = con.execute(
                 """
                 SELECT file_name
@@ -88,6 +57,7 @@ def main():
                 [pattern],
             ).fetchone()
 
+            # 3) Load the most recent parquet file into DuckDB
             if result is None:
                 logger.warning("No parquet files found matching pattern on S3")
                 return
@@ -95,6 +65,7 @@ def main():
             latest_path = result[0]
             logger.info(f"Loading most recent parquet file: {latest_path}")
 
+            # 4) Load the most recent parquet file into DuckDB
             con.execute(
                 """
                 CREATE OR REPLACE TABLE aircraft_states AS
@@ -104,10 +75,10 @@ def main():
             )
             logger.info("created aircraft_states table")
             
-            # load in the airframe data files
+            # 5) load in the airframe data files
             
             data_file1 = f"s3://{S3_BUCKET}/data/aircraftDatabase.csv"
-            
+            # 6) load the airframe data files into duckdb
             con.execute(
                 """
                 CREATE OR REPLACE TABLE airframes AS
@@ -118,9 +89,9 @@ def main():
             
             logger.info("created airframes table")
 
-            # load in the reference data files
+            # 7) load in the reference data files
             data_file2 = f"s3://{S3_BUCKET}/data/doc8643AircraftTypes.csv"
-            
+            # 8) load the reference data files into duckdb
             con.execute(
                 """
                 CREATE OR REPLACE TABLE model_database AS

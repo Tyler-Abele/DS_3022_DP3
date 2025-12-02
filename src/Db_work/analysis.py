@@ -21,12 +21,15 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+# 1) Get the latest window
+
 def get_latest_window(con):
     result = con.execute(
         "SELECT MAX(window_end) FROM aircraft_states"
     ).fetchone()
     return result[0] if result else None
 
+# 2) Create a DataFrame for a specific window
 def create_df_for_window(con, window_end) -> pd.DataFrame:
     logger.info(f"Fetching data for window_end: {window_end}")
     df = con.execute(
@@ -46,6 +49,7 @@ def create_df_for_window(con, window_end) -> pd.DataFrame:
     ).fetchdf()
     return df
 
+# 3) Train Isolation Forest
 def train_isolation_forest(df: pd.DataFrame):
     features = ["latitude", "longitude", "baro_altitude", "velocity", "vertical_rate"]
     
