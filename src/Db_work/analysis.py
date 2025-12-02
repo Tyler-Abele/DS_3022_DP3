@@ -60,14 +60,12 @@ def train_isolation_forest(df: pd.DataFrame):
     
     logger.info(f"Found {len(anomalies)} anomalies out of {len(df_features)} flights")
     
-    # Join back to original df to get callsigns if needed, or just print anomalies
-    # For now, let's print the anomalies with their features
     if not anomalies.empty:
-        # We might want to join back to get callsign, but df_features index should match df index if we didn't reset it.
-        # However, we dropped NAs, so indices might be preserved.
-        # Let's just print the features of anomalies.
-        print("\nAnomalies detected:")
-        print(anomalies)
+        logger.info("Anomalies detected:")
+        # Join with original df to get callsign using the index
+        anomalies_with_callsign = df.loc[anomalies.index, ["callsign"]]
+        anomalies_with_callsign["anomaly"] = -1
+        logger.info(f"\n{anomalies_with_callsign.to_string()}")
         
     # Visualize with anomalies highlighted
     logger.info("Generating anomaly plot...")
