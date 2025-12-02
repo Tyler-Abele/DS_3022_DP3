@@ -8,3 +8,4 @@ __pycache__
 *.csv
 *.duckdb
 state
+*/notebooks
