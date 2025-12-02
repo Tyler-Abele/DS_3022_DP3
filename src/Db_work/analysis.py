@@ -31,9 +31,16 @@ def create_df_for_window(con, window_end) -> pd.DataFrame:
     logger.info(f"Fetching data for window_end: {window_end}")
     df = con.execute(
         """
-        SELECT *
-        FROM aircraft_states
-        WHERE window_end = ?
+        SELECT 
+            s.*,
+            md.Description
+        FROM aircraft_states s
+        LEFT JOIN airframes af ON s.icao24 = af.icao24
+        LEFT JOIN model_database md ON (
+            af.typecode = md.Designator 
+            OR af.icaoaircrafttype = md.Designator
+        )
+        WHERE s.window_end = ?
         """,
         [window_end],
     ).fetchdf()
