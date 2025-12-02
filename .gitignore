@@ -8,8 +8,5 @@ __pycache__
 *.csv
 *.duckdb
 state
-<<<<<<< HEAD
 !images/*.png
-=======
 */notebooks
->>>>>>> a60548f76d28fc4525f77e4bb9c3716d91515f65
