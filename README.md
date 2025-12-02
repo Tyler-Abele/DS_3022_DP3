@@ -34,7 +34,7 @@ Commercial aviation generates an enormous volume of telemetry every second, yet 
 
 To map where aircraft operate spatially, we produced a geospatial KDE heatmap, revealing global concentrations of active flights. Unsurprisingly, aircraft density is highest along established transcontinental corridors—North America, Europe, and East Asia—while anomalies tend to appear near highly trafficked hubs and transition points. This density model provided contextual grounding for interpreting outlier behavior geographically.
 
-analyze air traffic patterns to find anaomolies -- right now I have the folders laid out in a way that we might want to look at military aircraft movement around military bases -- maybe looking for anomalies? -- we could do anything with the aircraft data really though.
+analyze air traffic patterns to find anomalies -- right now I have the folders laid out in a way that we might want to look at military aircraft movement around military bases -- maybe looking for anomalies? -- we could do anything with the aircraft data really though.
 
 
 # DS3022 Data Project 3
